@@ -1,0 +1,16 @@
+# sg_app/docker-compose.yml
+services:
+  frontend:
+    build:
+      context: ./apps/frontend
+    ports:
+      - "3000:8080"          # localhost:3000 → port 8080 du conteneur
+    env_file: .env
+
+  payments:
+    build:
+      context: ./apps/stripe-paiement
+    ports:
+      - "8081:8080"          # localhost:8081 → port 8080 du conteneur
+    env_file: .env
+

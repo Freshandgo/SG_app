@@ -6,7 +6,8 @@ node_modules/
 .dev.vars
 .terraform/
 *.tfstate
-*.tfstate.*node_modules/
+*.tfstate.
+*node_modules/
 .output/
 .env
 .env.*

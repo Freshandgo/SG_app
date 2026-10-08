@@ -1,0 +1,4 @@
+# sg_app/apps/frontend/.dockerignore
+node_modules
+.output
+.env*

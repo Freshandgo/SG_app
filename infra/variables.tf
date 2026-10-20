@@ -31,6 +31,6 @@ variable "image_tag" {
 }
 
 variable "github_repository" {
-  description = "Repo GitHub autorisé à déployer via OIDC (owner/nom, casse exacte)"
+  description = "Repo GitHub autorisé à déployer via OIDC, tel qu'il apparaît dans le subject du token (owner@id/repo@id si le repo utilise les immutable subjects)"
   type        = string
 }

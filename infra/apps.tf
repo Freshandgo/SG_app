@@ -37,7 +37,7 @@ resource "azurerm_container_app" "payments" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = var.min_replicas
     max_replicas = 5
 
     container {
@@ -111,7 +111,7 @@ resource "azurerm_container_app" "frontend" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = var.min_replicas
     max_replicas = 10
 
     container {

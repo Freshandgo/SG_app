@@ -41,7 +41,10 @@ export const fetchConnectionToken = createServerFn({ method: "POST" }).handler(
  */
 export const createPaymentIntent = createServerFn({ method: "POST" }).handler(
   async (ctx) => {
-    const { amountCents } = (ctx as { data: { amountCents: number } }).data;
+    const amountCents = (ctx as { data?: { amountCents?: unknown } }).data?.amountCents;
+    if (typeof amountCents !== "number" || !Number.isInteger(amountCents) || amountCents <= 0) {
+      throw new Error("amountCents doit être un entier > 0 (en cents)");
+    }
     const stripe = getStripe();
     const intent = await stripe.paymentIntents.create({
       amount: amountCents,

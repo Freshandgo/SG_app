@@ -17,3 +17,6 @@ node_modules/
 *.tfstate
 *.tfstate.*
 terraform.tfvars
+
+# Sorties des tests de charge k6 (régénérées à chaque run)
+load/run-scaling-test*.txt

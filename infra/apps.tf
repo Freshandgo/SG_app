@@ -69,7 +69,7 @@ resource "azurerm_container_app" "payments" {
 
     http_scale_rule {
       name                = "http-scaling"
-      concurrent_requests = "50"
+      concurrent_requests = "10"
     }
   }
 
@@ -139,7 +139,7 @@ resource "azurerm_container_app" "frontend" {
 
     http_scale_rule {
       name                = "http-scaling"
-      concurrent_requests = "50"
+      concurrent_requests = "10"
     }
   }
 

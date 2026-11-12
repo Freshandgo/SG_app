@@ -10,16 +10,50 @@ env:
   RESOURCE_GROUP: rg-paiement
 
 jobs:
-  # Construit les deux images en parallèle et les pousse sur Docker Hub.
+  # Détecte les apps modifiées et construit la matrice des jobs suivants.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.matrix.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Modifier ce workflow redéploie les deux apps, pour pouvoir le tester.
+          filters: |
+            frontend:
+              - 'apps/frontend/**'
+              - '.github/workflows/deploy.yml'
+            payments:
+              - 'apps/stripe-paiement/**'
+              - '.github/workflows/deploy.yml'
+
+      - id: matrix
+        run: |
+          all='[
+            {"key":"frontend","context":"apps/frontend","image":"sg-app-frontend","app":"ca-frontend"},
+            {"key":"payments","context":"apps/stripe-paiement","image":"sg-app-paiement","app":"ca-payments"}
+          ]'
+          # Lancement manuel : tout redéployer.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            changed='["frontend","payments"]'
+          else
+            changed='${{ steps.filter.outputs.changes }}'
+          fi
+          apps=$(jq -c --argjson c "$changed" '[.[] | select(.key as $k | $c | index($k))]' <<< "$all")
+          echo "Apps à déployer : $apps"
+          echo "apps=$apps" >> "$GITHUB_OUTPUT"
+
+  # Construit et pousse sur Docker Hub uniquement les images modifiées.
   build:
+    needs: changes
+    if: needs.changes.outputs.apps != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - context: apps/frontend
-            image: sg-app-frontend
-          - context: apps/stripe-paiement
-            image: sg-app-paiement
+        include: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,20 +75,16 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
-  # Met à jour les Container Apps avec l'image du commit (Terraform ignore ce champ).
+  # Met à jour les Container Apps modifiées avec l'image du commit (Terraform ignore ce champ).
   deploy:
-    needs: build
+    needs: [changes, build]
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # OIDC : GitHub émet un token que Azure échange contre un accès
       contents: read
     strategy:
       matrix:
-        include:
-          - app: ca-frontend
-            image: sg-app-frontend
-          - app: ca-payments
-            image: sg-app-paiement
+        include: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: azure/login@v2
         with:
@@ -68,7 +98,7 @@ jobs:
             --name ${{ matrix.app }} \
             --resource-group $RESOURCE_GROUP \
             --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ github.sha }}
-      
+
       - name: Smoke test ${{ matrix.app }}
         run: |
           fqdn=$(az containerapp show -n ${{ matrix.app }} -g "$RESOURCE_GROUP" \

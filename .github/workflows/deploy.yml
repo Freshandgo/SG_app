@@ -68,3 +68,15 @@ jobs:
             --name ${{ matrix.app }} \
             --resource-group $RESOURCE_GROUP \
             --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ github.sha }}
+      
+      - name: Smoke test ${{ matrix.app }}
+        run: |
+          fqdn=$(az containerapp show -n ${{ matrix.app }} -g "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 6); do
+            if curl -fsS --max-time 30 "https://$fqdn/health" | grep -qx ok; then
+              echo "${{ matrix.app }} OK"; exit 0
+            fi
+            sleep 10
+          done
+          echo "${{ matrix.app }} ne répond pas"; exit 1
